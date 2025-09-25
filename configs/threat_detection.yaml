@@ -1,0 +1,295 @@
+# ObserveGuard Threat Detection Configuration
+# This file defines the security policies and detection rules
+
+security_policies:
+  - id: "ai_model_protection"
+    name: "AI Model Protection Policy"
+    description: "Protects AI models from theft and unauthorized access"
+    enabled: true
+    version: 1
+    rules:
+      - id: "model_file_access_external"
+        name: "External Process Model File Access"
+        description: "Detect non-AI processes accessing model files"
+        type: "signature"
+        severity: "high"
+        enabled: true
+        condition:
+          event_types: ["file"]
+          filters:
+            - field: "path"
+              operator: "regex"
+              value: ".*\\.(pt|pth|pb|onnx|h5|pkl)$"
+            - field: "process"
+              operator: "not_in"
+              value: ["python", "python3", "jupyter", "pytorch", "tensorflow"]
+          logic: "AND"
+        tags: ["ai_security", "model_theft", "unauthorized_access"]
+
+      - id: "large_model_transfer"
+        name: "Large Model File Transfer"
+        description: "Detect potential model exfiltration via network"
+        type: "threshold"
+        severity: "critical"
+        enabled: true
+        condition:
+          event_types: ["network"]
+          filters:
+            - field: "bytes_sent"
+              operator: "gt"
+              value: 50000000  # 50MB
+            - field: "process"
+              operator: "in"
+              value: ["python", "python3", "curl", "wget", "scp", "rsync"]
+          threshold: 1
+          timeframe: "5m"
+          logic: "AND"
+        tags: ["ai_security", "data_exfiltration", "model_theft"]
+
+      - id: "model_directory_enumeration"
+        name: "Model Directory Enumeration"
+        description: "Detect enumeration of model directories"
+        type: "threshold"
+        severity: "medium"
+        enabled: true
+        condition:
+          event_types: ["file"]
+          filters:
+            - field: "action"
+              operator: "eq"
+              value: "open"
+            - field: "path"
+              operator: "contains"
+              value: ["/models/", "/checkpoints/", "/weights/", "\\models\\", "\\checkpoints\\", "\\weights\\"]
+          threshold: 10
+          timeframe: "2m"
+          logic: "AND"
+        tags: ["ai_security", "reconnaissance", "enumeration"]
+
+  - id: "data_exfiltration_prevention"
+    name: "Data Exfiltration Prevention Policy"
+    description: "Prevents unauthorized data exfiltration"
+    enabled: true
+    version: 1
+    rules:
+      - id: "large_data_upload"
+        name: "Large Data Upload Detection"
+        description: "Detect large data uploads to external services"
+        type: "threshold"
+        severity: "high"
+        enabled: true
+        condition:
+          event_types: ["network"]
+          filters:
+            - field: "bytes_sent"
+              operator: "gt"
+              value: 10000000  # 10MB
+            - field: "remote_addr"
+              operator: "not_in_subnet"
+              value: ["192.168.0.0/16", "10.0.0.0/8", "172.16.0.0/12", "127.0.0.1/8"]
+          threshold: 1
+          timeframe: "1m"
+          logic: "AND"
+        tags: ["data_exfiltration", "network_security", "upload"]
+
+      - id: "sensitive_file_access_burst"
+        name: "Sensitive File Access Burst"
+        description: "Detect rapid access to multiple sensitive files"
+        type: "threshold"
+        severity: "high"
+        enabled: true
+        condition:
+          event_types: ["file"]
+          filters:
+            - field: "path"
+              operator: "regex"
+              value: ".*(passwd|shadow|ssh|key|cert|credential|token|secret).*"
+          threshold: 5
+          timeframe: "30s"
+          logic: "AND"
+        tags: ["credential_harvesting", "sensitive_data", "burst_access"]
+
+  - id: "runtime_security"
+    name: "Runtime Security Policy"
+    description: "Monitors runtime behavior for security anomalies"
+    enabled: true
+    version: 1
+    rules:
+      - id: "ai_process_privilege_escalation"
+        name: "AI Process Privilege Escalation"
+        description: "Detect AI processes attempting privilege escalation"
+        type: "signature"
+        severity: "critical"
+        enabled: true
+        condition:
+          event_types: ["process"]
+          filters:
+            - field: "action"
+              operator: "eq"
+              value: "fork"
+            - field: "process"
+              operator: "in"
+              value: ["python", "python3", "jupyter", "node"]
+            - field: "command"
+              operator: "contains"
+              value: ["sudo", "su", "chmod +x", "setuid", "setgid"]
+          logic: "AND"
+        tags: ["privilege_escalation", "ai_security", "runtime"]
+
+      - id: "unusual_child_process_spawn"
+        name: "Unusual Child Process Spawning"
+        description: "Detect AI processes spawning suspicious child processes"
+        type: "signature"
+        severity: "medium"
+        enabled: true
+        condition:
+          event_types: ["process"]
+          filters:
+            - field: "action"
+              operator: "eq"
+              value: "fork"
+            - field: "process"
+              operator: "in"
+              value: ["python", "python3", "jupyter"]
+            - field: "command"
+              operator: "regex"
+              value: ".*(cmd|sh|bash|powershell|curl|wget|nc|netcat).*"
+          logic: "AND"
+        tags: ["process_injection", "ai_security", "suspicious_spawning"]
+
+  - id: "network_security"
+    name: "Network Security Policy"
+    description: "Monitors network activity for security threats"
+    enabled: true
+    version: 1
+    rules:
+      - id: "c2_communication_detection"
+        name: "C2 Communication Detection"
+        description: "Detect potential command and control communications"
+        type: "signature"
+        severity: "critical"
+        enabled: true
+        condition:
+          event_types: ["network"]
+          filters:
+            - field: "protocol"
+              operator: "eq"
+              value: "tcp"
+            - field: "remote_port"
+              operator: "in"
+              value: [4444, 5555, 6666, 7777, 8888, 9999]
+          logic: "AND"
+        tags: ["c2_communication", "malware", "network_threat"]
+
+      - id: "suspicious_dns_queries"
+        name: "Suspicious DNS Queries"
+        description: "Detect DNS queries to suspicious domains"
+        type: "signature"
+        severity: "medium"
+        enabled: true
+        condition:
+          event_types: ["network"]
+          filters:
+            - field: "protocol"
+              operator: "eq"
+              value: "udp"
+            - field: "remote_port"
+              operator: "eq"
+              value: 53
+            - field: "remote_addr"
+              operator: "regex"
+              value: ".*\\.(tk|ml|ga|cf|su|ru|cn)$"
+          logic: "AND"
+        tags: ["dns_security", "suspicious_domains", "network_threat"]
+
+# Threat Response Actions
+response_actions:
+  - type: "alert"
+    description: "Generate security alert"
+    parameters:
+      severity: "auto"
+      channels: ["log", "webhook"]
+    enabled: true
+
+  - type: "block"
+    description: "Block network connection"
+    parameters:
+      duration: "300s"  # 5 minutes
+      scope: "process"
+    enabled: false  # Disabled by default for safety
+
+  - type: "quarantine"
+    description: "Quarantine suspicious files"
+    parameters:
+      quarantine_dir: "/var/quarantine"
+      backup: true
+    enabled: false  # Disabled by default
+
+  - type: "notify"
+    description: "Send notification"
+    parameters:
+      webhook_url: ""
+      email: ""
+      slack_channel: ""
+    enabled: true
+
+# Detection Thresholds
+thresholds:
+  ai_model_access:
+    max_accesses_per_minute: 10
+    max_file_size_mb: 1000
+    alert_on_external_process: true
+
+  data_exfiltration:
+    max_upload_size_mb: 100
+    max_uploads_per_hour: 5
+    monitor_external_connections: true
+
+  process_anomalies:
+    max_child_processes: 5
+    monitor_privilege_escalation: true
+    track_process_injection: true
+
+# Whitelist Configuration
+whitelists:
+  trusted_processes:
+    - "python3"
+    - "jupyter-notebook"
+    - "tensorboard"
+    - "mlflow"
+    - "kubeflow"
+
+  trusted_model_paths:
+    - "/opt/models/"
+    - "/usr/local/models/"
+    - "~/.cache/huggingface/"
+    - "~/.cache/torch/"
+
+  trusted_networks:
+    - "192.168.0.0/16"
+    - "10.0.0.0/8"
+    - "172.16.0.0/12"
+
+# Logging Configuration
+logging:
+  threat_events: true
+  false_positives: true
+  performance_metrics: true
+  detection_statistics: true
+
+# Machine Learning Models for Anomaly Detection
+ml_models:
+  process_behavior:
+    enabled: false
+    model_path: "/opt/observeguard/models/process_anomaly.pkl"
+    sensitivity: 0.8
+
+  network_traffic:
+    enabled: false
+    model_path: "/opt/observeguard/models/network_anomaly.pkl"
+    sensitivity: 0.7
+
+  file_access_patterns:
+    enabled: false
+    model_path: "/opt/observeguard/models/file_access_anomaly.pkl"
+    sensitivity: 0.75

@@ -1,0 +1,103 @@
+# ObserveGuard API Server Configuration
+
+server:
+  port: "8080"
+  host: "0.0.0.0"
+  read_timeout: "30s"
+  write_timeout: "30s"
+  idle_timeout: "120s"
+  max_body_size: 4194304  # 4MB
+  enable_pprof: false
+  tls:
+    enabled: false
+    cert_file: ""
+    key_file: ""
+
+storage:
+  type: "badger"  # badger, redis, postgres
+  path: "./data"
+  max_size: 1073741824  # 1GB
+  ttl: "24h"
+  redis:
+    address: "localhost:6379"
+    password: ""
+    db: 0
+  postgres:
+    host: "localhost"
+    port: 5432
+    database: "observeguard"
+    username: "postgres"
+    password: "password"
+    ssl_mode: "disable"
+
+security:
+  jwt_secret: "your-super-secret-jwt-key-change-in-production"
+  jwt_expiration: "24h"
+  api_key: "your-api-key-change-in-production"
+  enable_auth: false  # Set to true in production
+  rate_limit:
+    enabled: true
+    max_requests: 100
+    window: "1m"
+    skip_ips: ["127.0.0.1", "::1"]
+  threat_detection:
+    enabled: true
+    sensitivity_level: "medium"  # low, medium, high
+    enabled_detectors:
+      - "model_access"
+      - "data_exfiltration"
+      - "privilege_escalation"
+      - "anomaly_detection"
+    model_paths:
+      - "/models"
+      - "/checkpoints"
+      - "/weights"
+    whitelisted_ips: []
+    blacklisted_ips: []
+    max_file_size: 104857600  # 100MB
+    suspicious_patterns:
+      - "*.pt"
+      - "*.pth"
+      - "*.pb"
+      - "*.onnx"
+      - "*.h5"
+
+monitoring:
+  enabled: true
+  interval: "1s"
+  event_buffer: 1000
+  metrics_enabled: true
+  prometheus_port: 9090
+  health_check:
+    enabled: true
+    interval: "30s"
+    timeout: "5s"
+  collectors:
+    ssl: true
+    process: true
+    network: true
+    file: true
+    ai: true
+    syscall: false  # High overhead, enable only if needed
+
+logging:
+  level: "info"  # debug, info, warn, error
+  format: "json"  # json, text
+  output: "stdout"  # stdout, file
+  filename: "observeguard.log"
+  max_size: 100  # MB
+  max_backups: 3
+  max_age: 28  # days
+  compress: true
+
+ebpf:
+  enabled: true
+  program_path: "./ebpf/programs"
+  programs:
+    - "ssl_monitor"
+    - "process_monitor"
+    - "network_security"
+    - "model_security"
+  buffer_size: 262144  # 256KB
+  max_events: 10000
+  timeout: "1s"

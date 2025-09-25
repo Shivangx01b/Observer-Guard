@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go mod init:*)",
+      "Bash(go mod:*)",
+      "Bash(go build:*)",
+      "Bash(build/observeguard version:*)",
+      "Bash(build/observeguard:*)",
+      "Bash(start /b buildobserveguard.exe server --config configs/apiserver.yaml)",
+      "Bash(dir build)",
+      "Bash(buildobserveguard server --help)",
+      "Bash(./build/observeguard:*)",
+      "Bash(python test:*)",
+      "Bash(PYTHONIOENCODING=utf-8 python test_ai_security.py)",
+      "Bash(curl:*)",
+      "Bash(python:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(PYTHONIOENCODING=utf-8 python test_prompt_injection.py)",
+      "Bash(PYTHONIOENCODING=utf-8 python test_jailbreaks.py)",
+      "Bash(PYTHONIOENCODING=utf-8 python test_banned_llms.py)",
+      "Bash(PYTHONIOENCODING=utf-8 python test_ai_hacking_cli.py)",
+      "Bash(PYTHONIOENCODING=utf-8 python run_tests.py)",
+      "Bash(taskkill:*)",
+      "Bash(./build/observeguard.exe server:*)",
+      "Bash(tasklist)",
+      "Bash(./build/observeguard.exe collect:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

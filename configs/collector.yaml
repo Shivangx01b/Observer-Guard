@@ -1,0 +1,37 @@
+# ObserveGuard Data Collector Configuration
+
+storage:
+  type: "badger"
+  path: "./data"
+  max_size: 1073741824  # 1GB
+  ttl: "168h"  # 7 days
+
+monitoring:
+  enabled: true
+  interval: "1s"
+  event_buffer: 2000
+  metrics_enabled: false
+  collectors:
+    ssl: true
+    process: true
+    network: true
+    file: true
+    ai: true
+    syscall: false
+
+logging:
+  level: "info"
+  format: "json"
+  output: "stdout"
+
+ebpf:
+  enabled: true
+  program_path: "./ebpf/programs"
+  programs:
+    - "ssl_monitor"
+    - "process_monitor"
+    - "network_security"
+    - "model_security"
+  buffer_size: 524288  # 512KB
+  max_events: 20000
+  timeout: "1s"
